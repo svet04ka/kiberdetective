@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кибердетектив: домашнее расследование</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b2440; --navy:#22305c; --paper:#fbf6e9; --paper2:#f3ead2;
+    --yellow:#ffe66d; --yellow-d:#f2c94c; --green:#2fa86b; --green-l:#dff5e8;
+    --red:#e0524a; --red-l:#fde3e1; --blue:#4a7bd8; --muted:#6b6f80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Rubik,system-ui,sans-serif;color:var(--ink);
+    background:#1b2440 radial-gradient(circle at 20% 0%, #2f4180 0, transparent 50%);min-height:100vh}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+  h1,h2,h3{font-family:"Russo One",Rubik,sans-serif;font-weight:400;margin:0}
+  header{color:#fff;text-align:center;padding:18px 0 8px}
+  header .badge{display:inline-block;background:var(--yellow);color:var(--ink);font-weight:700;
+    padding:4px 12px;border-radius:999px;font-size:13px;letter-spacing:.5px;transform:rotate(-2deg)}
+  header h1{font-size:clamp(26px,5vw,40px);margin:12px 0 6px}
+  header p{opacity:.85;margin:0 auto;max-width:560px;line-height:1.5}
+
+  /* evidence board */
+  .board{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:22px 0 18px}
+  .clue{background:#2c3a6b;border:2px dashed #5b6aa0;border-radius:14px;padding:10px 4px;text-align:center;
+    color:#c9d0ee;cursor:pointer;transition:.15s;font:inherit}
+  .clue:hover{transform:translateY(-2px)}
+  .clue .ic{font-size:24px;display:block}
+  .clue .nm{font-size:11px;display:block;margin-top:4px;line-height:1.2}
+  .clue .lt{font-family:"Russo One";font-size:20px;display:block;margin-top:4px;color:#5b6aa0}
+  .clue.done{background:var(--yellow);border:2px solid var(--yellow-d);color:var(--ink)}
+  .clue.done .lt{color:var(--ink)}
+  .clue.active{outline:3px solid #fff;outline-offset:2px}
+  .secret{color:#fff;text-align:center;margin-bottom:18px;font-size:14px;opacity:.9}
+  .secret b{font-family:"Russo One";letter-spacing:6px;font-size:22px;color:var(--yellow)}
+
+  /* case file */
+  .file{background:var(--paper);border-radius:6px 18px 18px 18px;padding:26px 22px 28px;position:relative;
+    box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  .file:before{content:"";position:absolute;top:-16px;left:0;width:170px;height:18px;background:var(--paper);
+    border-radius:10px 10px 0 0}
+  .file .tag{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .file h2{font-size:24px;margin:4px 0 10px}
+  .intro{background:var(--paper2);border-left:5px solid var(--yellow-d);padding:12px 14px;border-radius:8px;line-height:1.5;margin-bottom:18px}
+  .note{background:#fff7c2;padding:10px 14px;border-radius:8px;font-size:14px;line-height:1.45;margin:14px 0;transform:rotate(-.4deg);
+    box-shadow:0 2px 0 rgba(0,0,0,.08)}
+
+  .card{background:#fff;border-radius:14px;padding:16px;margin:14px 0;border:2px solid #ece4cc}
+  .card.solved{border-color:var(--green)}
+  .q{font-weight:500;line-height:1.45;margin-bottom:12px}
+  .qn{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:1px 8px;font-size:13px;margin-right:6px}
+  .msg{background:#eef2fb;border:1px solid #c8d4f0;border-radius:4px 16px 16px 16px;padding:10px 14px;margin:6px 0 12px;max-width:520px}
+  .msg .from{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:3px}
+  .url{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f1f1f4;padding:2px 6px;border-radius:6px}
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opts.row{flex-direction:row;flex-wrap:wrap}
+  .opt{font:inherit;text-align:left;background:#f7f4ea;border:2px solid #e5dcc0;border-radius:12px;padding:10px 14px;cursor:pointer;transition:.12s}
+  .opts.row .opt{flex:1;min-width:140px;text-align:center;font-weight:500}
+  .opt:hover:not(:disabled){border-color:var(--ink)}
+  .opt.ok{background:var(--green-l);border-color:var(--green)}
+  .opt.bad{background:var(--red-l);border-color:var(--red);text-decoration:line-through;opacity:.8}
+  .opt:disabled{cursor:default}
+  .fb{margin-top:10px;font-size:14px;line-height:1.45;padding:9px 12px;border-radius:10px;display:none}
+  .fb.show{display:block}
+  .fb.good{background:var(--green-l)}
+  .fb.try{background:var(--red-l)}
+
+  /* passwords */
+  .pwgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+  .pw{font:inherit;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;background:#fff;border:2px solid #e5dcc0;
+    border-radius:12px;padding:12px;cursor:pointer;text-align:left}
+  .pw.sel{border-color:var(--blue);background:#e8efff}
+  .pw.ok{border-color:var(--green);background:var(--green-l)}
+  .pw.bad{border-color:var(--red);background:var(--red-l)}
+  .pw small{display:block;font-family:Rubik;font-size:12px;color:var(--muted);margin-top:4px}
+  .btn{font:inherit;font-weight:700;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:12px 20px;cursor:pointer;margin-top:14px}
+  .btn.y{background:var(--yellow);color:var(--ink)}
+  .btn:disabled{opacity:.4;cursor:default}
+  input[type=text]{font:inherit;font-size:18px;width:100%;padding:12px 14px;border:2px solid #d9cfb2;border-radius:12px;background:#fff}
+  input[type=text]:focus{outline:none;border-color:var(--blue)}
+  .rules{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+  .rules li{padding:6px 10px;border-radius:8px;background:#f1ece0;font-size:14px}
+  .rules li.on{background:var(--green-l)}
+  .meter{height:12px;border-radius:99px;background:#eee;margin-top:12px;overflow:hidden}
+  .meter i{display:block;height:100%;width:0;background:var(--red);transition:.25s}
+
+  .check{display:flex;gap:12px;align-items:flex-start;background:#fff;border:2px solid #ece4cc;border-radius:14px;padding:14px;margin:10px 0;cursor:pointer}
+  .check input{width:22px;height:22px;flex-shrink:0;margin-top:2px;accent-color:var(--green)}
+  .check.on{border-color:var(--green);background:#f6fdf9}
+
+  .done-banner{display:none;text-align:center;background:var(--yellow);border-radius:14px;padding:16px;margin-top:20px}
+  .done-banner.show{display:block}
+  .done-banner .big{font-family:"Russo One";font-size:40px}
+  .nav{display:flex;justify-content:space-between;margin-top:18px;gap:10px}
+
+  /* certificate */
+  .cert{text-align:center;border:4px double var(--ink);border-radius:18px;padding:26px 18px;background:#fffdf5}
+  .cert .medal{font-size:64px}
+  .cert h2{font-size:28px;margin:8px 0}
+  .cert .name{font-family:"Russo One";font-size:30px;color:var(--blue);margin:10px 0;min-height:36px}
+  .stamp{display:inline-block;border:3px solid var(--red);color:var(--red);font-family:"Russo One";padding:6px 14px;border-radius:8px;
+    transform:rotate(-6deg);margin-top:12px;letter-spacing:2px}
+  .stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+  .stat{background:var(--paper2);border-radius:12px;padding:10px 16px}
+  .stat b{font-family:"Russo One";font-size:24px;display:block}
+  .hidden{display:none}
+  @media (max-width:560px){
+    .board{grid-template-columns:repeat(3,1fr)}
+    .file{padding:22px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">🕵️ ДОМАШНЕЕ ЗАДАНИЕ · СЕКРЕТНО</span>
+    <h1>Дело №1: Кибердетектив</h1>
+    <p>Мошенник ещё на свободе! Пройди 6 заданий, собери все улики и открой секретное слово. Только тогда дело будет раскрыто.</p>
+  </header>
+
+  <div class="board" id="board"></div>
+  <div class="secret">Секретное слово: <b id="word">_ _ _ _ _ _</b></div>
+
+  <div class="file" id="file"></div>
+</div>
+
+<script>
+const LETTERS = ["З","А","Щ","И","Т","А"];
+
+const MISSIONS = [
+ {id:"pw", icon:"🔐", name:"Пароли", type:"passwords",
+  intro:"Мошенник пытался подобрать пароли жителей киберграда. Помоги охране: найди надёжные пароли и создай свой учебный пароль-крепость."},
+ {id:"msg", icon:"💬", name:"Сообщения", type:"quiz",
+  intro:"Детективы перехватили сообщения. Какие из них написал мошенник? Выбери, как правильно поступить.",
+  qs:[
+   {from:"Служба поддержки Roblox", text:"Ваш аккаунт будет УДАЛЁН через 24 часа! Чтобы сохранить его, пришлите логин и пароль.",
+    q:"Что ты сделаешь?", opts:["Пришлю пароль: не хочу потерять аккаунт","Спрошу, точно ли это поддержка","Не буду отвечать и расскажу взрослым"], a:2,
+    why:"Настоящая поддержка никогда не просит пароль. Срочность («24 часа!») — любимый приём мошенников. Переписываться с ними тоже не нужно."},
+   {from:"Неизвестный номер", text:"Привет! Я случайно указал твой номер, тебе сейчас придёт код в СМС. Перешли его мне, пожалуйста 🙏",
+    q:"Что ты сделаешь?", opts:["Перешлю: человек же ошибся","Не буду пересылать код и расскажу взрослым","Перешлю только половину кода"], a:1,
+    why:"Коды из СМС не сообщают НИКОМУ. С их помощью крадут аккаунты и деньги."},
+   {from:"Петя (одноклассник)", text:"Привет! Какие страницы задали по русскому?",
+    q:"Это мошенник?", opts:["Да, срочно заблокировать!","Нет, это обычный вопрос, можно ответить"], a:1,
+    why:"Не каждое сообщение опасно. Петя не просит денег, пароль, код или личные данные, так что можно спокойно ответить."},
+   {from:"Розыгрыш призов", text:"ПОЗДРАВЛЯЕМ!!! Ты выиграл новый смартфон! Забери приз в течение 1 часа: prize-super-win.ru",
+    q:"Что ты сделаешь?", opts:["Быстро перейду по ссылке, пока приз не исчез","Не буду переходить по ссылке","Отправлю ссылку друзьям, пусть тоже выиграют"], a:1,
+    why:"Ты ни в чём не участвовал, а тебе обещают дорогой приз и торопят. Бесплатный сыр бывает только в мышеловке!"},
+   {from:"Мама (новый номер)", text:"Это мама, пишу с нового номера. Срочно скажи код, который сейчас придёт тебе в СМС!",
+    q:"Что ты сделаешь?", opts:["Сразу скажу код: это же мама","Позвоню маме на её обычный номер и спрошу","Попрошу прислать фото, чтобы проверить"], a:1,
+    why:"Мошенники часто притворяются родными. Всегда перезванивай на знакомый номер. И помни: код из СМС не нужен даже маме."}
+  ]},
+ {id:"data", icon:"🪪", name:"Личные данные", type:"quiz", row:true,
+  intro:"Мошенник собирает информацию по фото и постам. Реши, что можно публиковать в интернете, а что нельзя.",
+  qs:[
+   {q:"📸 Фото твоего кота, который спит на диване", opts:["✅ Можно","❌ Нельзя"], a:0, why:"Фото питомцев можно публиковать: по ним нельзя узнать, где ты живёшь."},
+   {q:"🪟 Вид из окна: виден соседний дом и табличка с его номером", opts:["✅ Можно","❌ Нельзя"], a:1, why:"По виду из окна можно вычислить твой адрес и даже этаж."},
+   {q:"✈️ Пост: «Ура! Завтра всей семьёй улетаем на море на 2 недели!»", opts:["✅ Можно","❌ Нельзя"], a:1, why:"Так мошенники узнают, когда квартира будет пустой. Фото с отпуска лучше выкладывать, когда вернёшься."},
+   {q:"🎨 Твой рисунок дракона", opts:["✅ Можно","❌ Нельзя"], a:0, why:"Свои рисунки и творчество публиковать можно. Они не выдают личных данных."},
+   {q:"💳 Фото маминой банковской карты: «Смотрите, какая красивая!»", opts:["✅ Можно","❌ Нельзя"], a:1, why:"По номеру карты мошенники могут украсть деньги. Карту никогда не фотографируют для интернета."},
+   {q:"🏫 Селфи у входа в школу, видна табличка «Школа №…»", opts:["✅ Можно","❌ Нельзя"], a:1, why:"Так незнакомцы узнают, где тебя можно найти каждый день."},
+   {q:"🌅 Красивый закат над рекой (без адреса и геометки)", opts:["✅ Можно","❌ Нельзя"], a:0, why:"Природу можно публиковать, если по фото нельзя определить, где ты живёшь."},
+   {q:"🤪 Смешное фото друга, где он спит на уроке, без его разрешения", opts:["✅ Можно","❌ Нельзя"], a:1, why:"Чужие фото без разрешения публиковать нельзя: это может обидеть друга и испортить ему репутацию."}
+  ]},
+ {id:"site", icon:"🌐", name:"Сайты", type:"quiz",
+  intro:"Мошенник сделал сайты-двойники. Смотри на адрес очень внимательно: иногда отличается всего одна буква!",
+  qs:[
+   {q:"Какой адрес у <b>настоящего</b> сайта Roblox?", opts:["<span class='url'>www.robIox.com</span>","<span class='url'>www.roblox.com</span>","<span class='url'>www.roblox-free-robux.com</span>"], a:1,
+    why:"В первом адресе вместо маленькой «l» стоит большая «I», почти не отличить! А «free-robux» в адресе — явная приманка."},
+   {q:"Найди <b>поддельный</b> адрес:", opts:["<span class='url'>www.google.com</span>","<span class='url'>ya.ru</span>","<span class='url'>www.gogle.com</span>"], a:2,
+    why:"В «gogle» пропала одна буква «o». Мошенники меняют, убирают или добавляют всего один символ."},
+   {q:"Ты хочешь войти во ВКонтакте. На каком сайте можно вводить пароль?", opts:["<span class='url'>vk-com.login-page.ru</span>","<span class='url'>vk.com</span>","<span class='url'>vkk.com</span>"], a:1,
+    why:"Настоящий адрес — vk.com. Если в адресе есть лишние слова или буквы, пароль вводить нельзя."},
+   {from:"Почта России?", text:"Ваша посылка задержана! Оплатите доставку 99 ₽ по ссылке в течение 2 часов, иначе посылку вернут отправителю.",
+    q:"Что здесь подозрительно?", opts:["Ничего, надо быстрее оплатить","Срочность и просьба заплатить по ссылке","Подозрительно только то, что очень дёшево"], a:1,
+    why:"Срочность и оплата по ссылке — признаки фишинга. Через поддельную форму оплаты крадут данные карты. Покажи такое письмо взрослым."},
+   {q:"Где безопаснее всего скачать игру?", opts:["На сайте с надписью «Скачай БЕСПЛАТНО и БЫСТРО!» и кучей рекламы","На официальном сайте игры или в магазине приложений","По ссылке от незнакомца в чате"], a:1,
+    why:"Официальные сайты и магазины приложений защищают от вирусов. На неофициальных сайтах может прятаться вредная программа."}
+  ]},
+ {id:"game", icon:"🎮", name:"Игры", type:"quiz", row:true,
+  intro:"Последний след ведёт в онлайн-игры. Правда это или ловушка мошенника?",
+  qs:[
+   {q:"«Модератор игры может попросить твой пароль, чтобы проверить аккаунт»", opts:["👍 Правда","🪤 Ловушка"], a:1, why:"Настоящие модераторы и техподдержка НИКОГДА не просят пароль или код подтверждения."},
+   {q:"«Генератор бесплатных кристаллов позволяет получить игровую валюту без денег»", opts:["👍 Правда","🪤 Ловушка"], a:1, why:"Таких генераторов не существует. Вместо валюты получишь вирус или потеряешь аккаунт."},
+   {q:"«Если аккаунт взломали, сначала нужно рассказать взрослым, потом сменить пароль»", opts:["👍 Правда","🪤 Ловушка"], a:0, why:"Правильно! Потом выйди из аккаунта на всех устройствах и проверь, не писали ли от твоего имени."},
+   {q:"«Игрок прислал скриншот, что уже оплатил обмен, значит можно сразу отдавать предмет»", opts:["👍 Правда","🪤 Ловушка"], a:1, why:"Скриншот легко подделать. Мошенники используют фальшивые подтверждения оплаты."},
+   {q:"«Читы, скачанные с неизвестных сайтов, могут содержать вирусы»", opts:["👍 Правда","🪤 Ловушка"], a:0, why:"Верно! Под видом читов и «бесплатных скинов» часто прячут вредные программы."},
+   {q:"«Если в игре кто-то грубит, лучше не отвечать и не ввязываться в спор»", opts:["👍 Правда","🪤 Ловушка"], a:0, why:"Да! Ответ только продолжит конфликт. Можно пожаловаться на игрока или заблокировать его."}
+  ]},
+ {id:"real", icon:"🏠", name:"Задание дома", type:"checklist",
+  intro:"Настоящий детектив делится знаниями! Выполни задания в реальной жизни и отметь галочкой то, что сделал.",
+  items:[
+   "<b>Научи взрослого.</b> Расскажи родителям или бабушке с дедушкой, почему никому нельзя говорить код из СМС, даже если пишет «родственник» с нового номера.",
+   "<b>Придумай семейное кодовое слово.</b> Договоритесь с родителями о секретном слове, по которому вы узнаете друг друга, если кто-то напишет с незнакомого номера.",
+   "<b>Нарисуй памятку «5 правил кибердетектива»</b> в тетради или на листе бумаги. Принеси её на следующий урок!",
+   "<b>Проверь свои пароли вместе со взрослым.</b> Нет ли у тебя паролей вроде 123456 или имени с годом рождения? Если есть, смени их вместе с родителями."
+  ]}
+];
+
+const PASSWORDS = [
+ {p:"sasha2015", ok:false, why:"имя и год, нет больших букв и символов"},
+ {p:"Gr@pe7Moon", ok:true, why:"10 символов, все 4 вида"},
+ {p:"87654321", ok:false, why:"только цифры, легко подобрать"},
+ {p:"Kotik!", ok:false, why:"слишком короткий, нет цифр"},
+ {p:"Rain$Bow42", ok:true, why:"10 символов, все 4 вида"},
+ {p:"Football2024", ok:false, why:"нет специального символа"},
+ {p:"qwerty!1", ok:false, why:"нет больших букв, это ряд клавиш"},
+ {p:"Zebra_Jump#3", ok:true, why:"12 символов, все 4 вида"}
+];
+
+// ---------- state ----------
+let S = {cur:0, done:{}, ans:{}, first:{}, pwSel:[], pwChecked:false, pwOk:false, myPw:false, checks:{}, name:""};
+try{ const s = JSON.parse(localStorage.getItem("cyberdet-hw")||"null"); if(s) S = Object.assign(S,s);}catch(e){}
+function save(){ try{localStorage.setItem("cyberdet-hw",JSON.stringify(S));}catch(e){} }
+
+const $ = s => document.querySelector(s);
+const allDone = () => MISSIONS.every(m => S.done[m.id]);
+
+function renderBoard(){
+  $("#board").innerHTML = MISSIONS.map((m,i)=>`
+    <button class="clue ${S.done[m.id]?"done":""} ${S.cur===i?"active":""}" onclick="go(${i})">
+      <span class="ic">${m.icon}</span><span class="nm">${m.name}</span>
+      <span class="lt">${S.done[m.id]?LETTERS[i]:"?"}</span>
+    </button>`).join("");
+  $("#word").textContent = LETTERS.map((l,i)=>S.done[MISSIONS[i].id]?l:"_").join(" ");
+}
+
+function go(i){ S.cur=i; save(); render(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+function render(){
+  renderBoard();
+  if(S.cur===6){ renderCert(); return; }
+  const m = MISSIONS[S.cur];
+  let body = "";
+  if(m.type==="passwords") body = pwHTML();
+  if(m.type==="quiz") body = quizHTML(m);
+  if(m.type==="checklist") body = checkHTML(m);
+  $("#file").innerHTML = `
+    <div class="tag">Улика ${S.cur+1} из 6</div>
+    <h2>${m.icon} ${m.name}</h2>
+    <div class="intro">${m.intro}</div>
+    ${body}
+    <div class="done-banner ${S.done[m.id]?"show":""}" id="banner">
+      Улика найдена! Твоя буква: <div class="big">${LETTERS[S.cur]}</div>
+    </div>
+    <div class="nav">
+      <button class="btn" ${S.cur===0?"disabled":""} onclick="go(${S.cur-1})">← Назад</button>
+      ${S.cur<5 ? `<button class="btn y" onclick="go(${S.cur+1})">Следующая улика →</button>`
+               : `<button class="btn y" ${allDone()?"":"disabled"} onclick="go(6)">Раскрыть дело 🏅</button>`}
+    </div>`;
+  if(m.type==="passwords") bindPw();
+}
+
+function finish(id){
+  if(!S.done[id]){ S.done[id]=true; save(); }
+  renderBoard();
+  const b=$("#banner"); if(b) b.classList.add("show");
+  const nb=document.querySelector(".nav .btn.y"); if(nb && allDone()) nb.disabled=false;
+}
+
+// ---------- passwords ----------
+function pwHTML(){
+  return `
+  <div class="card">
+    <div class="q"><span class="qn">Часть 1</span>Нажми на <b>все надёжные</b> пароли, потом нажми «Проверить».</div>
+    <div class="note">📌 Вспомни правила: минимум <b>8 символов</b>, <b>большие</b> и <b>маленькие</b> буквы, <b>цифры</b> и <b>специальные символы</b> (! @ # $ % _ &).</div>
+    <div class="pwgrid" id="pwgrid"></div>
+    <button class="btn" id="pwcheck">Проверить</button>
+    <div class="fb" id="pwfb"></div>
+  </div>
+  <div class="card ${S.myPw?"solved":""}" id="mycard">
+    <div class="q"><span class="qn">Часть 2</span>Придумай свой <b>учебный</b> пароль-крепость. Сканер проверит, выдержит ли он атаку мошенника.</div>
+    <div class="note">⚠️ Не вводи свои настоящие пароли! Придумай новый, только для тренировки. Подсказка: возьми два слова, замени букву символом и добавь цифру. Например, Кот + Луна → <span class="url">K0t#Luna5</span></div>
+    <input type="text" id="mypw" placeholder="Введи учебный пароль…" autocomplete="off">
+    <div class="meter"><i id="meter"></i></div>
+    <ul class="rules" id="rules"></ul>
+    <div class="fb" id="myfb"></div>
+  </div>`;
+}
+function drawPw(){
+  $("#pwgrid").innerHTML = PASSWORDS.map((x,i)=>{
+    let cls = S.pwSel.includes(i)?"sel":"";
+    let sm = "";
+    if(S.pwChecked){ const sel=S.pwSel.includes(i);
+      if(sel && x.ok){cls="ok"; sm="✅ "+x.why;}
+      else if(sel && !x.ok){cls="bad"; sm="❌ "+x.why;}
+      else if(!sel && x.ok && S.pwOk){cls="ok"; sm="✅ "+x.why;}
+    }
+    return `<button class="pw ${cls}" data-i="${i}">${x.p}${sm?`<small>${sm}</small>`:""}</button>`;
+  }).join("");
+}
+const RULES = [
+ ["8+ символов", s=>s.length>=8],
+ ["большая буква", s=>/[A-ZА-ЯЁ]/.test(s)],
+ ["маленькая буква", s=>/[a-zа-яё]/.test(s)],
+ ["цифра", s=>/\d/.test(s)],
+ ["спецсимвол", s=>/[^A-Za-zА-Яа-яЁё0-9\s]/.test(s)]
+];
+function bindPw(){
+  drawPw();
+  $("#pwgrid").onclick = e=>{
+    const b=e.target.closest(".pw"); if(!b||S.pwOk) return;
+    const i=+b.dataset.i; S.pwChecked=false;
+    S.pwSel = S.pwSel.includes(i)? S.pwSel.filter(x=>x!==i) : [...S.pwSel,i];
+    save(); drawPw(); $("#pwfb").className="fb";
+  };
+  $("#pwcheck").onclick = ()=>{
+    S.pwChecked=true;
+    const right = PASSWORDS.every((x,i)=>x.ok===S.pwSel.includes(i));
+    const fb=$("#pwfb");
+    if(right){ S.pwOk=true; fb.className="fb show good"; fb.innerHTML="🎉 Отлично! Ты нашёл все три надёжных пароля. Ни один слабый пароль тебя не обманул.";}
+    else{
+      if(S.first.pw===undefined) S.first.pw=false;
+      const missed = PASSWORDS.filter((x,i)=>x.ok && !S.pwSel.includes(i)).length;
+      fb.className="fb show try";
+      fb.innerHTML = "🔎 Почти! Красным отмечены слабые пароли, которые ты выбрал."+(missed?` А ещё ты пропустил надёжных паролей: ${missed}.`:"")+" Нажми на пароли ещё раз, чтобы исправить.";
+    }
+    if(S.first.pw===undefined) S.first.pw=right;
+    save(); drawPw(); checkPwDone();
+  };
+  if(S.pwOk){ $("#pwfb").className="fb show good"; $("#pwfb").innerHTML="🎉 Все надёжные пароли найдены!"; }
+  const inp=$("#mypw");
+  const upd=()=>{
+    const s=inp.value, n=RULES.filter(r=>r[1](s)).length;
+    $("#rules").innerHTML = RULES.map(r=>`<li class="${r[1](s)?"on":""}">${r[1](s)?"✅":"⬜"} ${r[0]}</li>`).join("");
+    const m=$("#meter"); m.style.width=(n/5*100)+"%";
+    m.style.background = n<3?"var(--red)":n<5?"var(--yellow-d)":"var(--green)";
+    const fb=$("#myfb");
+    if(n===5 && /^(.)\1+$/.test(s)===false){
+      if(!S.myPw){S.myPw=true; save();}
+      fb.className="fb show good"; fb.innerHTML="🛡️ Пароль-крепость! Мошенник такой не подберёт. Запиши его в тетрадь как пример.";
+      $("#mycard").classList.add("solved"); checkPwDone();
+    } else if(s){ fb.className="fb show try"; fb.innerHTML="Сканер нашёл слабые места. Добавь то, что ещё не отмечено галочкой."; }
+    else fb.className="fb";
+  };
+  inp.oninput=upd; upd();
+  if(S.myPw && !inp.value){ $("#myfb").className="fb show good"; $("#myfb").innerHTML="🛡️ Ты уже создал пароль-крепость. Можешь потренироваться ещё!"; }
+}
+function checkPwDone(){ if(S.pwOk && S.myPw) finish("pw"); }
+
+// ---------- quiz ----------
+function quizHTML(m){
+  return m.qs.map((q,i)=>{
+    const key=m.id+i, a=S.ans[key]||[];
+    const solved=a.includes(q.a);
+    return `<div class="card ${solved?"solved":""}" id="c-${key}">
+      <div class="q"><span class="qn">${i+1}</span>${q.from?"":q.q}</div>
+      ${q.from?`<div class="msg"><div class="from">${q.from}</div>${q.text}</div><div class="q">${q.q}</div>`:""}
+      <div class="opts ${m.row?"row":""}">
+        ${q.opts.map((o,j)=>{
+          const cls = a.includes(j)?(j===q.a?"ok":"bad"):"";
+          return `<button class="opt ${cls}" ${solved?"disabled":""} onclick="pick('${m.id}',${i},${j})">${o}</button>`;}).join("")}
+      </div>
+      <div class="fb ${solved?"show good":""}" id="f-${key}">${solved?"✅ "+q.why:""}</div>
+    </div>`;
+  }).join("");
+}
+function pick(mid,i,j){
+  const m=MISSIONS.find(x=>x.id===mid), q=m.qs[i], key=mid+i;
+  S.ans[key]=[...(S.ans[key]||[]),j];
+  if(S.first[key]===undefined) S.first[key]=(j===q.a);
+  const card=$("#c-"+key), btns=card.querySelectorAll(".opt"), fb=$("#f-"+key);
+  if(j===q.a){
+    btns[j].classList.add("ok"); btns.forEach(b=>b.disabled=true);
+    card.classList.add("solved");
+    fb.className="fb show good"; fb.innerHTML="✅ "+q.why;
+  } else {
+    btns[j].classList.add("bad"); btns[j].disabled=true;
+    fb.className="fb show try"; fb.innerHTML="🤔 Не совсем! Подумай, кто и зачем мог это написать, и попробуй ещё раз.";
+  }
+  save();
+  if(m.qs.every((qq,k)=>(S.ans[mid+k]||[]).includes(qq.a))) finish(mid);
+}
+
+// ---------- checklist ----------
+function checkHTML(m){
+  return m.items.map((t,i)=>`
+    <label class="check ${S.checks[i]?"on":""}">
+      <input type="checkbox" ${S.checks[i]?"checked":""} onchange="tick(${i},this)"><span>${t}</span>
+    </label>`).join("") + `<div class="note">✍️ Отмечай честно: настоящие детективы не жульничают!</div>`;
+}
+function tick(i,el){
+  S.checks[i]=el.checked; el.parentElement.classList.toggle("on",el.checked); save();
+  if(MISSIONS[5].items.every((_,k)=>S.checks[k])) finish("real");
+}
+
+// ---------- certificate ----------
+function renderCert(){
+  const keys = Object.keys(S.first), firstOk = keys.filter(k=>S.first[k]).length;
+  const total = 1 + MISSIONS.filter(m=>m.qs).reduce((s,m)=>s+m.qs.length,0);
+  const pct = firstOk/total;
+  const rank = pct>=.9?"Главный кибердетектив":pct>=.7?"Старший кибердетектив":"Кибердетектив-стажёр";
+  $("#file").innerHTML = `
+   <div class="cert">
+     <div class="medal">🏅</div>
+     <div class="tag">Дело №1 раскрыто!</div>
+     <h2>Секретное слово — «ЗАЩИТА»</h2>
+     <p>Именно ЗАЩИТА от мошенников — главная задача кибердетектива. Удостоверение выдано:</p>
+     <input type="text" id="nm" placeholder="Впиши своё имя" value="${S.name.replace(/"/g,"&quot;")}" style="max-width:320px;text-align:center">
+     <div class="name" id="nmv">${S.name||"…"}</div>
+     <div>Звание: <b>${rank}</b></div>
+     <div class="stats">
+       <div class="stat"><b>6/6</b>улик собрано</div>
+       <div class="stat"><b>${firstOk}/${total}</b>ответов с первой попытки</div>
+     </div>
+     <div class="stamp">ДЕЛО ЗАКРЫТО</div>
+     <p style="font-size:14px;color:var(--muted);margin-top:18px">📷 Сделай скриншот удостоверения и покажи учителю на следующем уроке!</p>
+   </div>
+   <div class="card">
+     <div class="q">🗂️ Памятка кибердетектива: запомни навсегда</div>
+     <ol style="line-height:1.7;margin:0;padding-left:20px">
+       <li>Пароль: 8+ символов, большие и маленькие буквы, цифры, спецсимволы. И никому его не говори!</li>
+       <li>Коды из СМС не сообщай никому, даже «маме с нового номера».</li>
+       <li>Не переходи по ссылкам с «выигрышами» и «срочными» просьбами.</li>
+       <li>Перед вводом пароля проверь адрес сайта по буквам.</li>
+       <li>Не публикуй адрес, школу, фото из окна и планы на отпуск.</li>
+       <li>Что-то пошло не так? Сразу расскажи взрослым.</li>
+     </ol>
+   </div>
+   <div class="nav"><button class="btn" onclick="go(5)">← Назад к уликам</button>
+     <button class="btn" onclick="resetAll()" style="background:#8a8fa3">Начать заново</button></div>`;
+  $("#nm").oninput=e=>{S.name=e.target.value; $("#nmv").textContent=S.name||"…"; save();};
+}
+function resetAll(){ S={cur:0,done:{},ans:{},first:{},pwSel:[],pwChecked:false,pwOk:false,myPw:false,checks:{},name:""}; save(); render(); }
+
+if(S.cur===6 && !allDone()) S.cur=0;
+render();
+</script>
+</body>
+</html>
